@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Word Guessing Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      color: #e94560;
+      margin: 20px 0 5px;
+      letter-spacing: 2px;
+    }
+
+    .subtitle { color: #aaa; font-size: 0.9rem; margin-bottom: 20px; }
+
+    /* SCREENS */
+    .screen { width: 100%; max-width: 600px; display: none; }
+    .screen.active { display: block; }
+
+    /* START SCREEN */
+    .card {
+      background: #16213e;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 { color: #e94560; margin-bottom: 16px; font-size: 1.1rem; }
+
+    .options { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .option-btn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background: #0f3460;
+      color: #eee;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .option-btn:hover { border-color: #e94560; }
+    .option-btn.selected { border-color: #e94560; background: #e94560; color: white; font-weight: bold; }
+
+    .start-btn {
+      width: 100%;
+      padding: 14px;
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.2s;
+    }
+
+    .start-btn:hover { background: #c73652; }
+
+    /* SCOREBOARD */
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #2a2a4a;
+      font-size: 0.9rem;
+    }
+    .score-row:last-child { border-bottom: none; }
+    .score-row span:first-child { color: #aaa; }
+    .score-row span:last-child { color: #e94560; font-weight: bold; }
+
+    /* GAME SCREEN */
+    .game-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-bottom: 16px;
+    }
+
+    .info-box { text-align: center; }
+    .info-label { font-size: 0.7rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+    .info-value { font-size: 1.2rem; font-weight: bold; color: #e94560; }
+
+    .hint-box {
+      background: #0f3460;
+      border-left: 4px solid #e94560;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    .hint-box strong { color: #e94560; }
+
+    /* WORD DISPLAY */
+    .word-display {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    .letter-box {
+      width: 44px;
+      height: 52px;
+      background: #16213e;
+      border: 2px solid #333;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #e94560;
+      transition: all 0.3s;
+    }
+
+    .letter-box.revealed {
+      border-color: #e94560;
+      background: #e94560;
+      color: white;
+    }
+
+    /* HEARTS / ATTEMPTS */
+    .hearts {
+      text-align: center;
+      font-size: 1.5rem;
+      margin: 12px 0;
+      letter-spacing: 4px;
+    }
+
+    /* KEYBOARD */
+    .keyboard {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+      margin: 16px 0;
+    }
+
+    .key {
+      width: 38px;
+      height: 38px;
+      background: #0f3460;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .key:hover:not(:disabled) { background: #e94560; }
+    .key.correct { background: #2ecc71; color: white; }
+    .key.wrong { background: #444; color: #888; cursor: not-allowed; }
+    .key:disabled { cursor: not-allowed; }
+
+    /* GUESSED LETTERS */
+    .guessed-section {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #aaa;
+      margin: 8px 0;
+    }
+
+    /* RESULT */
+    .result-box {
+      text-align: center;
+      padding: 20px;
+      background: #16213e;
+      border-radius: 16px;
+      margin-top: 16px;
+    }
+
+    .result-box h2 { font-size: 1.8rem; margin-bottom: 8px; }
+    .result-box.win h2 { color: #2ecc71; }
+    .result-box.lose h2 { color: #e94560; }
+    .result-box p { color: #aaa; margin-bottom: 16px; }
+
+    .result-word { font-size: 1.3rem; font-weight: bold; color: #e94560; }
+
+    .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+
+    .btn {
+      padding: 10px 22px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary { background: #e94560; color: white; }
+    .btn-primary:hover { background: #c73652; }
+    .btn-secondary { background: #0f3460; color: white; }
+    .btn-secondary:hover { background: #1a4a8a; }
+
+    .empty { color: #555; font-style: italic; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<h1>🔤 Word Quest</h1>
+<p class="subtitle">Guess the hidden word — one letter at a time</p>
+
+<!-- START SCREEN -->
+<div class="screen active" id="startScreen">
+
+  <div class="card">
+    <h2>Choose a Category</h2>
+    <div class="options" id="categoryOptions">
+      <button class="option-btn selected" data-value="animals">Animals</button>
+      <button class="option-btn" data-value="tech">Tech</button>
+      <button class="option-btn" data-value="food">Food</button>
+      <button class="option-btn" data-value="sports">Sports</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Choose Difficulty</h2>
+    <div class="options" id="difficultyOptions">
+      <button class="option-btn selected" data-value="easy">Easy (8 tries)</button>
+      <button class="option-btn" data-value="medium">Medium (6 tries)</button>
+      <button class="option-btn" data-value="hard">Hard (4 tries)</button>
+    </div>
+  </div>
+
+  <button class="start-btn" onclick="startGame()">Start Game</button>
+
+  <div class="card" id="scoreboardCard">
+    <h2>Scoreboard</h2>
+    <div id="scoreboardList"><p class="empty">No games played yet.</p></div>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div class="screen" id="gameScreen">
+
+  <div class="game-info">
+    <div class="info-box">
+      <div class="info-label">Category</div>
+      <div class="info-value" id="displayCategory">-</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Letters</div>
+      <div class="info-value" id="displayLength">-</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Difficulty</div>
+      <div class="info-value" id="displayDifficulty">-</div>
+    </div>
+    <div class="info-box">
+      <div class="info-label">Score</div>
+      <div class="info-value" id="displayScore">0</div>
+    </div>
+  </div>
+
+  <div class="hint-box">
+    <strong>Hint:</strong> <span id="hintText">-</span>
+  </div>
+
+  <div class="hearts" id="hearts"></div>
+
+  <div class="word-display" id="wordDisplay"></div>
+
+  <div class="guessed-section">
+    Wrong guesses: <span id="wrongLetters">none</span>
+  </div>
+
+  <div class="keyboard" id="keyboard"></div>
+
+  <div id="resultBox"></div>
+
+  <div class="btn-row" style="margin-top:16px">
+    <button class="btn btn-secondary" onclick="goHome()">Home</button>
+  </div>
+</div>
+
+<script>
+  // ---- WORD BANK ----
+  const wordBank = {
+    animals: [
+      { word: "elephant", hint: "The largest land animal on Earth" },
+      { word: "penguin",  hint: "A bird that cannot fly but loves cold weather" },
+      { word: "dolphin",  hint: "A very intelligent sea mammal" },
+      { word: "cheetah",  hint: "The fastest land animal" },
+      { word: "giraffe",  hint: "Has the longest neck of any animal" }
+    ],
+    tech: [
+      { word: "python",   hint: "A popular beginner-friendly programming language" },
+      { word: "browser",  hint: "Software used to access websites" },
+      { word: "github",   hint: "A platform for hosting and sharing code" },
+      { word: "keyboard", hint: "You type on this every day" },
+      { word: "database", hint: "Stores and organizes large amounts of data" }
+    ],
+    food: [
+      { word: "pizza",    hint: "Italian dish with cheese and toppings on dough" },
+      { word: "sushi",    hint: "Japanese food often made with raw fish and rice" },
+      { word: "mango",    hint: "A tropical fruit — India is the biggest producer" },
+      { word: "noodles",  hint: "Long thin pasta — a staple in Asian cuisine" },
+      { word: "burger",   hint: "A sandwich with a meat patty, popular worldwide" }
+    ],
+    sports: [
+      { word: "cricket",  hint: "India's most popular sport" },
+      { word: "football", hint: "Most popular sport in the world" },
+      { word: "tennis",   hint: "Played with a racket on a court" },
+      { word: "swimming", hint: "A water sport and an Olympic event" },
+      { word: "archery",  hint: "Shooting arrows at a target with a bow" }
+    ]
+  };
+
+  const difficultyAttempts = { easy: 8, medium: 6, hard: 4 };
+
+  // ---- GAME STATE ----
+  let selectedCategory = "animals";
+  let selectedDifficulty = "easy";
+  let secretWord = "";
+  let hint = "";
+  let maxAttempts = 8;
+  let wrongAttempts = 0;
+  let guessedLetters = [];
+  let display = [];
+  let score = 0;
+  let gameOver = false;
+  let scoreboard = JSON.parse(localStorage.getItem("wordQuestScores") || "[]");
+
+  // ---- OPTION BUTTONS ----
+  function setupOptions(groupId, stateKey) {
+    document.getElementById(groupId).querySelectorAll(".option-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.getElementById(groupId).querySelectorAll(".option-btn").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        if (stateKey === "category") selectedCategory = btn.dataset.value;
+        else selectedDifficulty = btn.dataset.value;
+      });
+    });
+  }
+
+  setupOptions("categoryOptions", "category");
+  setupOptions("difficultyOptions", "difficulty");
+
+  // ---- START GAME ----
+  function startGame() {
+    const pool = wordBank[selectedCategory];
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    secretWord = chosen.word;
+    hint = chosen.hint;
+    maxAttempts = difficultyAttempts[selectedDifficulty];
+    wrongAttempts = 0;
+    guessedLetters = [];
+    display = Array(secretWord.length).fill("_");
+    score = 0;
+    gameOver = false;
+
+    document.getElementById("displayCategory").textContent = selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1);
+    document.getElementById("displayLength").textContent = secretWord.length + " letters";
+    document.getElementById("displayDifficulty").textContent = selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1);
+    document.getElementById("displayScore").textContent = score;
+    document.getElementById("hintText").textContent = hint;
+    document.getElementById("resultBox").innerHTML = "";
+
+    showScreen("gameScreen");
+    renderWord();
+    renderHearts();
+    renderKeyboard();
+    updateWrongLetters();
+  }
+
+  // ---- GUESS LOGIC ----
+  function guess(letter) {
+    if (gameOver || guessedLetters.includes(letter)) return;
+    guessedLetters.push(letter);
+
+    const key = document.querySelector(`.key[data-letter="${letter}"]`);
+
+    if (secretWord.includes(letter)) {
+      for (let i = 0; i < secretWord.length; i++) {
+        if (secretWord[i] === letter) display[i] = letter;
+      }
+      if (key) key.classList.add("correct");
+      score += 10;
+      document.getElementById("displayScore").textContent = score;
+    } else {
+      wrongAttempts++;
+      if (key) key.classList.add("wrong");
+    }
+
+    key.disabled = true;
+    renderWord();
+    renderHearts();
+    updateWrongLetters();
+    checkGameOver();
+  }
+
+  function checkGameOver() {
+    if (!display.includes("_")) {
+      gameOver = true;
+      score += (maxAttempts - wrongAttempts) * 5;
+      showResult(true);
+      saveScore(true);
+    } else if (wrongAttempts >= maxAttempts) {
+      gameOver = true;
+      showResult(false);
+      saveScore(false);
+    }
+  }
+
+  // ---- RENDER FUNCTIONS ----
+  function renderWord() {
+    const div = document.getElementById("wordDisplay");
+    div.innerHTML = display.map(l =>
+      `<div class="letter-box ${l !== "_" ? "revealed" : ""}">${l !== "_" ? l.toUpperCase() : ""}</div>`
+    ).join("");
+  }
+
+  function renderHearts() {
+    const remaining = maxAttempts - wrongAttempts;
+    let h = "";
+    for (let i = 0; i < maxAttempts; i++) {
+      h += i < remaining ? "❤️" : "🖤";
+    }
+    document.getElementById("hearts").textContent = h;
+  }
+
+  function renderKeyboard() {
+    const alpha = "abcdefghijklmnopqrstuvwxyz";
+    document.getElementById("keyboard").innerHTML = alpha.split("").map(l =>
+      `<button class="key" data-letter="${l}" onclick="guess('${l}')">${l.toUpperCase()}</button>`
+    ).join("");
+  }
+
+  function updateWrongLetters() {
+    const wrong = guessedLetters.filter(l => !secretWord.includes(l));
+    document.getElementById("wrongLetters").textContent = wrong.length ? wrong.join(", ") : "none";
+  }
+
+  function showResult(won) {
+    const box = document.getElementById("resultBox");
+    box.className = "result-box " + (won ? "win" : "lose");
+    box.innerHTML = `
+      <h2>${won ? "You Won! 🎉" : "Game Over 💀"}</h2>
+      <p>${won ? "Great job! You guessed the word!" : "Better luck next time!"}</p>
+      <p>The word was: <span class="result-word">${secretWord.toUpperCase()}</span></p>
+      <p style="color:#aaa; font-size:0.85rem; margin-top:6px">Final score: <strong style="color:#e94560">${score}</strong></p>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="startGame()">Play Again</button>
+        <button class="btn btn-secondary" onclick="goHome()">Home</button>
+      </div>`;
+  }
+
+  // ---- SCOREBOARD ----
+  function saveScore(won) {
+    const entry = {
+      category: selectedCategory,
+      difficulty: selectedDifficulty,
+      word: secretWord,
+      score: score,
+      result: won ? "Win" : "Loss",
+      date: new Date().toLocaleDateString()
+    };
+    scoreboard.unshift(entry);
+    if (scoreboard.length > 10) scoreboard = scoreboard.slice(0, 10);
+    localStorage.setItem("wordQuestScores", JSON.stringify(scoreboard));
+  }
+
+  function renderScoreboard() {
+    const list = document.getElementById("scoreboardList");
+    if (!scoreboard.length) {
+      list.innerHTML = `<p class="empty">No games played yet.</p>`;
+      return;
+    }
+    list.innerHTML = scoreboard.map(e => `
+      <div class="score-row">
+        <span>${e.date} · ${e.category} · ${e.difficulty}</span>
+        <span>${e.result === "Win" ? "✅" : "❌"} ${e.score}pts</span>
+      </div>`).join("");
+  }
+
+  function goHome() {
+    showScreen("startScreen");
+    renderScoreboard();
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+  }
+
+  renderScoreboard();
+</script>
+</body>
+</html>
